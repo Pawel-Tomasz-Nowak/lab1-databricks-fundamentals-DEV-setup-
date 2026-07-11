@@ -1,0 +1,442 @@
+{
+  "datasets": [
+    {
+      "name": "dad5a1ae",
+      "displayName": "Alabama Residential Property Sales Overview",
+      "queryLines": [
+        "USE CATALOG `dbr_dev`;\n",
+        "USE SCHEMA `pawelnowak2004pri219`;\n",
+        "\n",
+        "SELECT type, soldOn, lastSoldPrice, beds, baths FROM dbr_dev.pawelnowak2004pri219.alabama_real_estate"
+      ]
+    },
+    {
+      "name": "4d1fd514",
+      "displayName": "Cumulative Revenue from Sold Houses by Property Size Over Time",
+      "queryLines": [
+        "\n",
+        "WITH daily_revenue AS (\n",
+        "  SELECT \n",
+        "    `soldOn` as sale_date,\n",
+        "    CASE \n",
+        "      WHEN `sqft` < 1500 THEN 'Small (< 1,500 sqft)'\n",
+        "      WHEN `sqft` >= 1500 AND `sqft` < 2500 THEN 'Medium (1,500-2,500 sqft)'\n",
+        "      WHEN `sqft` >= 2500 AND `sqft` < 3500 THEN 'Large (2,500-3,500 sqft)'\n",
+        "      WHEN `sqft` >= 3500 THEN 'Extra Large (3,500+ sqft)'\n",
+        "    END as size_category,\n",
+        "    SUM(`lastSoldPrice`) as daily_revenue\n",
+        "  FROM `dbr_dev`.`pawelnowak2004pri219`.`alabama_real_estate`\n",
+        "  WHERE `sqft` IS NOT NULL \n",
+        "    AND `lastSoldPrice` IS NOT NULL \n",
+        "    AND `soldOn` IS NOT NULL\n",
+        "  GROUP BY `soldOn`, size_category\n",
+        "),\n",
+        "cumulative_revenue AS (\n",
+        "  SELECT \n",
+        "    sale_date,\n",
+        "    size_category,\n",
+        "    daily_revenue,\n",
+        "    SUM(daily_revenue) OVER (\n",
+        "      PARTITION BY size_category \n",
+        "      ORDER BY sale_date \n",
+        "      ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW\n",
+        "    ) as cumulative_revenue\n",
+        "  FROM daily_revenue\n",
+        ")\n",
+        "SELECT \n",
+        "  sale_date,\n",
+        "  size_category,\n",
+        "  cumulative_revenue\n",
+        "FROM cumulative_revenue\n",
+        "ORDER BY sale_date, size_category\n"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "e969520c",
+      "displayName": "Overview",
+      "layout": [
+        {
+          "widget": {
+            "name": "58034e0f",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "dad5a1ae",
+                  "fields": [
+                    {
+                      "name": "type",
+                      "expression": "`type`"
+                    },
+                    {
+                      "name": "count(type)",
+                      "expression": "COUNT(`type`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "Type Distribution",
+                "showTitle": true
+              },
+              "mark": {
+                "colors": [
+                  "#AB4057"
+                ],
+                "layout": "group"
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "type",
+                  "axis": {
+                    "title": "Property Type"
+                  },
+                  "displayName": "Property Type",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "count(type)",
+                  "axis": {
+                    "title": "Type Frequency"
+                  },
+                  "displayName": "Type Frequency",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "label": {
+                  "show": true
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "dc9579ba",
+            "queries": [
+              {
+                "name": "ce241c09bf5a4072b707a3d973a6f113",
+                "query": {
+                  "datasetName": "dad5a1ae",
+                  "fields": [
+                    {
+                      "name": "soldOn",
+                      "expression": "`soldOn`"
+                    },
+                    {
+                      "name": "column_713fb4b7154",
+                      "expression": "AVG(`lastSoldPrice`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Average Revenue By Date",
+                "viz_type": "CHART",
+                "serialized_options": "{\"isAggregationOn\":true,\"series\":{\"error_y\":{\"type\":\"data\",\"visible\":true},\"stacking\":null},\"coefficient\":1,\"yAxis\":[{\"title\":{\"text\":\"Average Revenue\"},\"type\":\"-\"},{\"opposite\":true,\"type\":\"-\"}],\"columnConfigurationMap\":{\"x\":{\"column\":\"soldOn\",\"id\":\"column_713fb4b7151\"},\"y\":[{\"column\":\"lastSoldPrice\",\"id\":\"column_713fb4b7154\",\"transform\":\"AVG\"}]},\"alignYAxesAtZero\":true,\"direction\":{\"type\":\"counterclockwise\"},\"swappedAxes\":false,\"percentFormat\":\"0[.]00%\",\"textFormat\":\"\",\"legend\":{\"traceorder\":\"normal\"},\"globalSeriesType\":\"line\",\"version\":2,\"sizemode\":\"diameter\",\"seriesOptions\":{\"column_713fb4b7154\":{\"color\":\"#FFAB00\",\"type\":\"line\",\"yAxis\":0}},\"error_y\":{\"type\":\"data\",\"visible\":true},\"sortX\":true,\"showDataLabels\":false,\"missingValuesAsZero\":true,\"useAggregationsUi\":true,\"numberFormat\":\"0,0.[00000]\",\"dateTimeFormat\":\"DD/MM/YYYY HH:mm\",\"sortY\":true,\"valuesOptions\":{},\"xAxis\":{\"labels\":{\"enabled\":true},\"title\":{\"text\":\"Date\"},\"type\":\"-\"}}",
+                "query_name": "ce241c09bf5a4072b707a3d973a6f113"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 24,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "bf8bc10e",
+            "queries": [
+              {
+                "name": "ce241c09bf5a4072b707a3d973a6f113",
+                "query": {
+                  "datasetName": "dad5a1ae",
+                  "fields": [
+                    {
+                      "name": "type",
+                      "expression": "`type`"
+                    },
+                    {
+                      "name": "column_fd2ee10d448",
+                      "expression": "SUM(`lastSoldPrice`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 0,
+              "viz_spec": {
+                "display_name": "Total Revenue by Type",
+                "viz_type": "CHART",
+                "serialized_options": "{\"isAggregationOn\":true,\"series\":{\"error_y\":{\"type\":\"data\",\"visible\":true},\"stacking\":null},\"coefficient\":1,\"yAxis\":[{\"type\":\"-\"},{\"opposite\":true,\"type\":\"-\"}],\"columnConfigurationMap\":{\"x\":{\"column\":\"type\",\"id\":\"column_713fb4b7237\"},\"y\":[{\"column\":\"lastSoldPrice\",\"id\":\"column_fd2ee10d448\",\"transform\":\"SUM\"}]},\"alignYAxesAtZero\":true,\"direction\":{\"type\":\"counterclockwise\"},\"swappedAxes\":false,\"percentFormat\":\"0[.]0%\",\"textFormat\":\"\",\"legend\":{\"traceorder\":\"normal\"},\"globalSeriesType\":\"pie\",\"version\":2,\"sizemode\":\"diameter\",\"seriesOptions\":{\"column_fd2ee10d448\":{\"name\":\"Total Revenue\",\"type\":\"pie\",\"yAxis\":0}},\"error_y\":{\"type\":\"data\",\"visible\":true},\"sortX\":true,\"showDataLabels\":true,\"missingValuesAsZero\":true,\"useAggregationsUi\":true,\"numberFormat\":\"0,0.[00000]\",\"dateTimeFormat\":\"DD/MM/YYYY HH:mm\",\"sortY\":true,\"valuesOptions\":{},\"xAxis\":{\"labels\":{\"enabled\":true},\"type\":\"-\"}}",
+                "query_name": "ce241c09bf5a4072b707a3d973a6f113"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 8,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "9d73b49f",
+            "multilineTextboxSpec": {
+              "lines": [
+                "<span style=\"font-size: 40px;line-height: 1.5;\">**Super cool dashboard for the first assignment for the Databricks Academy**</span>\n",
+                "<p>&nbsp;</p>\n"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 24,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "beds_vs_price_scatter",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "dad5a1ae",
+                  "fields": [
+                    {
+                      "name": "type",
+                      "expression": "`type`"
+                    },
+                    {
+                      "name": "beds",
+                      "expression": "`beds`"
+                    },
+                    {
+                      "name": "lastSoldPrice",
+                      "expression": "`lastSoldPrice`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "Sale Price vs. Bedrooms by Type",
+                "showTitle": true
+              },
+              "mark": {
+                "opacity": 0.7,
+                "size": -1
+              },
+              "widgetType": "scatter",
+              "encodings": {
+                "x": {
+                  "fieldName": "beds",
+                  "axis": {
+                    "title": "Bedrooms"
+                  },
+                  "displayName": "Bedrooms",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "fieldName": "lastSoldPrice",
+                  "axis": {
+                    "title": "Sale Price ($)"
+                  },
+                  "displayName": "Sale Price",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "type",
+                  "displayName": "Property Type",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 12,
+            "y": 8,
+            "width": 12,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "5f5ac4a6",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "4d1fd514",
+                  "fields": [
+                    {
+                      "name": "sale_date",
+                      "expression": "`sale_date`"
+                    },
+                    {
+                      "name": "cumulative_revenue",
+                      "expression": "`cumulative_revenue`"
+                    },
+                    {
+                      "name": "size_category",
+                      "expression": "`size_category`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "mark": {
+                "layout": "stack"
+              },
+              "version": 3,
+              "frame": {
+                "title": "Cumulative Revenue from Sold Houses by Property Size Over Time",
+                "showTitle": true
+              },
+              "widgetType": "area",
+              "encodings": {
+                "x": {
+                  "fieldName": "sale_date",
+                  "axis": {
+                    "title": "Sale Date"
+                  },
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "cumulative_revenue",
+                  "axis": {
+                    "title": "Cumulative Revenue"
+                  },
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "places": 1,
+                      "type": "exact"
+                    }
+                  },
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "size_category",
+                  "legend": {
+                    "title": "Property Size",
+                    "position": "top"
+                  },
+                  "scale": {
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "value": "Small (< 1,500 sqft)",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 1
+                        }
+                      },
+                      {
+                        "value": "Medium (1,500-2,500 sqft)",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 2
+                        }
+                      },
+                      {
+                        "value": "Large (2,500-3,500 sqft)",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 3
+                        }
+                      },
+                      {
+                        "value": "Extra Large (3,500+ sqft)",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 4
+                        }
+                      }
+                    ],
+                    "sort": {
+                      "by": "custom-order",
+                      "orderedValues": [
+                        "Extra Large (3,500+ sqft)",
+                        "Large (2,500-3,500 sqft)",
+                        "Medium (1,500-2,500 sqft)",
+                        "Small (< 1,500 sqft)"
+                      ]
+                    }
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 14,
+            "width": 12,
+            "height": 9
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    },
+    "applyModeEnabled": false
+  }
+}
